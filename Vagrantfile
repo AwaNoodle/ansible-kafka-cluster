@@ -49,18 +49,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Note that zk_id must be unique for each host in the cluster. It should ideally not change
   # throughout the lifetime of the Zookeeper installation on a given machine.
-  zk_cluster_info = {
-    'zk-node-1' => { :zk_id => 1 },
-    'zk-node-2' => { :zk_id => 2 },
-    'zk-node-3' => { :zk_id => 3 }
-  }
-
   # Note that broker_id must be unique for each host in the cluster. It should ideally not change
   # throughout the lifetime of the Kafka installation on a given machine.
-  kafka_cluster_info = {
-    'kafka-node-1' => { :broker_id => 1 },
-    'kafka-node-2' => { :broker_id => 2 },
-    'kafka-node-3' => { :broker_id => 3 }
+  zk_cluster_info = {
+    'zk-node-1' => { :zk_id => 1, :broker_id => 1 },
+    'zk-node-2' => { :zk_id => 2, :broker_id => 2 },
+    'zk-node-3' => { :zk_id => 3, :broker_id => 3 }
   }
 
   ## ------- These need to be set in group vars if using Ansible w/o Vagrant ------- >
@@ -70,32 +64,21 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     private_network_begin,
     zk_cluster_info.size)
 
-  kafka_ips = IpAssigner.generate(
-    IpAssigner.next_ip(zk_ips.last || private_network_begin),
-    kafka_cluster_info.size)
-
   zk_cluster = Hash[zk_cluster_info.map.with_index { |(k, v), idx|
     [k, v.merge(
       :ip => zk_ips[idx],
-      :memory => zk_vm_memory_mb,
-      :client_port => zk_port,
-      :client_forward_to => zk_port + idx )]
-  }]
-
-  kafka_cluster = Hash[kafka_cluster_info.map.with_index { |(k, v), idx|
-    [k, v.merge(
-      :ip => kafka_ips[idx],
       :memory => kafka_vm_memory_mb,
-      :client_port => kafka_port,
-      :client_forward_to => kafka_port + idx )]
+      :zk_client_port => zk_port,
+      :zk_client_forward_to => zk_port + idx,
+      :ka_client_port => kafka_port,
+      :ka_client_forward_to => kafka_port + idx)]
   }]
 
-  total_cluster = zk_cluster.merge(kafka_cluster)
-
-  total_cluster.each_with_index do |(short_name, info), idx|
+  zk_cluster.each_with_index do |(short_name, info), idx|
 
     config.vm.define short_name do |host|
-      host.vm.network :forwarded_port, guest: info[:client_port], host: info[:client_forward_to]
+      host.vm.network :forwarded_port, guest: info[:zk_client_port], host: info[:zk_client_forward_to]
+      host.vm.network :forwarded_port, guest: info[:ka_client_port], host: info[:ka_client_forward_to]
       host.vm.network :private_network, ip: info[:ip]
       host.vm.hostname = short_name
       host.vm.provider :virtualbox do |vb|
@@ -103,21 +86,22 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       end
 
       # This allows us to provision everything in one go, in parallel.
-       if idx == (total_cluster.size - 1)
+       if idx == (zk_cluster.size - 1)
          host.vm.provision :ansible do |ansible|
            ansible.playbook = "site.yml"
            ansible.groups = {
              "zk" => zk_cluster.keys,
-             "kafka" => kafka_cluster.keys
+             "kafka" => zk_cluster.keys
            }
            ansible.verbose = 'vv'
            ansible.sudo = true
            ansible.limit = 'all' # otherwise, Ansible only runs on the current host...
            ansible.extra_vars = {
+             cluster_node_seq: "None",
              accept_oracle_licence: accept_oracle_licence,
              vagrant_zk_client_port: zk_port,
              vagrant_zk_cluster_info: zk_cluster_info,
-             vagrant_kafka_cluster_info: kafka_cluster_info
+             vagrant_kafka_cluster_info: zk_cluster_info
            }
          end
        end
