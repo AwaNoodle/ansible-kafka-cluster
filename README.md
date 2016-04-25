@@ -28,7 +28,7 @@ For other systems, checkout the installation pages of [Vagrant](https://docs.vag
 ### 2. Clone this repo
 
 ```
-git clone git@github.com:lloydmeta/ansible-kafka-cluster.git
+git clone git@github.com:awanoodle/ansible-kafka-cluster.git
 cd ansible-kafka-cluster
 ```
 
@@ -44,11 +44,11 @@ vagrant up
 In separate terminals, run:
 
 ```
-vagrant ssh kafka-node-1
+vagrant ssh zk-node-1
 ```
 
 ```
-vagrant ssh kafka-node-2
+vagrant ssh zk-node-2
 ```
 
 ### 5. Create a replicated topic in kafka-node-1 and play with it
@@ -70,7 +70,7 @@ my test message 2
 ^C
 ```
 
-### 6. In kafka-node-2, consume a few messages
+### 6. In zk-node-2, consume a few messages
 ```
 export LOG_DIR=/tmp # otherwise we get a warning
 cd /etc/kafka_2.11-0.8.2.1
@@ -87,7 +87,7 @@ my test message 2
 From  your host, take down a Kafka node
 
 ```
-vagrant suspend kafka-node-3
+vagrant suspend zk-node-3
 ```
 
 Wait 6 seconds; this is the default heartbeat frequency for Kafka that tells Zookeeper that a node has gone down.
@@ -101,4 +101,3 @@ bin/kafka-topics.sh --describe --zookeeper zk-node-1:2181 --topic my-replicated-
 Feel free to send and consume messages while the node is down. Note though, that you may have to restart some of the shell-based consumer/producers that are already running because they don't work well in disaster situations..
 
 ### 8. Bring the Kafka node back up, put it to sleep, etc.
-
