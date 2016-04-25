@@ -7,5 +7,37 @@
     - zookeeper
 
 - hosts: kafka
+  vars:
+  - kafka_status_install_path: /opt/kafka_status
   roles:
     - kafka
+
+  tasks:
+  - name: install ruby
+    yum:
+      name: "{{ item }}"
+    with_items:
+    - ruby
+    - ruby-devel
+    - "@Development tools"
+    - rubygem-bundler
+
+  - name: Install kafka_Status
+    git:
+      repo: https://github.com/AwaNoodle/kafka-status.git
+      dest: "{{ kafka_status_install_path }}"
+
+  - name: Set Execute for Kafka_Status
+    file:
+      path: "{{ kafka_status_install_path }}/kafka_status.rb"
+      mode: a+x
+
+  - name: Set Permissions for Kafka_Status Gemfile.lock
+    file:
+      path: "{{ kafka_status_install_path }}/Gemfile.lock"
+      mode: a+rw
+
+  - name: Bundle
+    bundler:
+      gemfile: "{{ kafka_status_install_path }}/Gemfile"
+    sudo: no
