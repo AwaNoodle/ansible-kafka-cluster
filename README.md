@@ -101,3 +101,7 @@ bin/kafka-topics.sh --describe --zookeeper zk-node-1:2181 --topic my-replicated-
 Feel free to send and consume messages while the node is down. Note though, that you may have to restart some of the shell-based consumer/producers that are already running because they don't work well in disaster situations..
 
 ### 8. Bring the Kafka node back up, put it to sleep, etc.
+
+### 9. Use Kafka Manager
+
+zk-node-1 also contains Kafka Manager. You can access this via your host on [http://localhost:9654](http://localhost:9654). 

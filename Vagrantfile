@@ -85,13 +85,19 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         vb.customize ["modifyvm", :id, "--memory", info[:memory]]
       end
 
+      # Setup for Kafka Manager on the first node
+      if idx == 0
+        host.vm.network :forwarded_port, guest: 9000, host: 9654
+      end
+
       # This allows us to provision everything in one go, in parallel.
        if idx == (zk_cluster.size - 1)
          host.vm.provision :ansible do |ansible|
            ansible.playbook = "site.yml"
            ansible.groups = {
              "zk" => zk_cluster.keys,
-             "kafka" => zk_cluster.keys
+             "kafka" => zk_cluster.keys,
+             "kafka-manager" => zk_cluster.keys[0]
            }
            ansible.verbose = 'vv'
            ansible.sudo = true
