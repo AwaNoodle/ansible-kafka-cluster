@@ -1,0 +1,13 @@
+---
+vagrant_kafka_cluster_info:
+   zk-node-1:
+     zk_id: 1
+     broker_id: 1
+   zk-node-2:
+     zk_id: 2
+     broker_id: 2
+   zk-node-3:
+     zk_id: 3
+     broker_id: 3
+
+vagrant_zk_client_port: 2181

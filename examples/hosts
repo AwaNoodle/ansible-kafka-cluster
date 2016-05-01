@@ -1,0 +1,9 @@
+[zk]
+zk-node-1
+zk-node-2
+zk-node-3
+
+[kafka]
+zk-node-1
+zk-node-2
+zk-node-3
