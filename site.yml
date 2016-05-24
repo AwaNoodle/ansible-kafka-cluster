@@ -47,6 +47,15 @@
 - hosts: kafka-manager
   become: true
 
+  roles:
+    - role: jtyr.yumrepo
+      yumrepo_repos:
+        docker:
+          nname: Docker
+          baseurl: https://yum.dockerproject.org/repo/main/centos/$releasever/
+          gpgcheck: 1
+          gpgkey: https://yum.dockerproject.org/gpg
+
   tasks:
   - name: Get Initial ZK Host
     set_fact:

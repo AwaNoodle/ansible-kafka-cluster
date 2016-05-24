@@ -94,7 +94,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
        if idx == (zk_cluster.size - 1)
          host.vm.provision :ansible do |ansible|
            ansible.playbook = "site.yml"
-           ansible.groups = {
+           galaxy_role_file = "requirements.yml"
+	   ansible.groups = {
              "zk" => zk_cluster.keys,
              "kafka" => zk_cluster.keys,
              "kafka-manager" => zk_cluster.keys[0]
