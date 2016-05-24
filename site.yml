@@ -44,7 +44,7 @@
       gemfile: "{{ kafka_status_install_path }}/Gemfile"
     sudo: no
 
-- hosts: kafka-manager
+- hosts: [kafka-manager, prometheus-master]
   become: true
 
   roles:
@@ -56,24 +56,15 @@
           gpgcheck: 1
           gpgkey: https://yum.dockerproject.org/gpg
 
+    - role: docker
+
+- hosts: kafka-manager
+  become: true
+
   tasks:
   - name: Get Initial ZK Host
     set_fact:
       initial_zk_host: "{{ hostvars[groups['zk'][0]]['ansible_enp0s8']['ipv4']['address'] }}"
-
-  - name: Add Docker-Py
-    yum:
-      name: python-docker-py
-
-  - name: install Docker
-    yum:
-      name: https://yum.dockerproject.org/repo/main/centos/7/Packages/docker-engine-1.11.0-1.el7.centos.x86_64.rpm
-      update_cache: true
-
-  - name: Start Docker
-    service:
-      name: docker
-      state: started
 
   - name: Add Kafka Manager
     docker:
@@ -84,3 +75,9 @@
       - 9000:9000
       env:
         ZK_HOSTS: "{{ initial_zk_host }}:2181"
+
+
+- hosts: prometheus-master
+  become: true
+  roles:
+    - prometheus-docker

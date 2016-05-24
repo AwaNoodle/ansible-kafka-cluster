@@ -1,0 +1,3 @@
+---
+prometheus_data_path: /data/mysql
+prometheus_config_path: /data/config

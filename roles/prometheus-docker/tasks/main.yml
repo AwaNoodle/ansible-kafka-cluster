@@ -1,0 +1,73 @@
+---
+
+- name: Create Data folder for MySQL
+  file:
+    path: "{{ prometheus_data_path }}"
+    state: directory
+
+- name: Create Data folder for Config
+  file:
+    path: "{{ prometheus_config_path }}"
+    state: directory
+
+- name: Add Prometheus Config
+  copy:
+    src: prometheus.conf
+    dest: "{{ prometheus_config_path }}/prometheus.conf"
+
+- name: Add AlertManager Config
+  copy:
+    src: alertmanager.conf
+    dest: "{{ prometheus_config_path }}/alertmanager.conf"
+
+- name: Check for database
+  stat: 
+    path: "{{ prometheus_data_path }}/file.sqlite3"
+  register: prom_db_file
+
+- name: Setup PromDash DB
+  docker:
+    name: promdash-migration
+    image: prom/promdash
+    command: ./bin/rake db:migrate
+    detach: false
+    state: started
+    volumes:
+    - "{{ prometheus_data_path }}:/tmp/prom"
+    env:
+      DATABASE_URL: sqlite3:/tmp/prom/file.sqlite3
+  when: prom_db_file.stat.exists is defined and prom_db_file.stat.exists == false
+
+- name: Add PromDash
+  docker:
+    name: promdash
+    image: prom/promdash
+    state: started
+    ports:
+    - 3000:3000
+    volumes:
+    - "{{ prometheus_data_path }}:/tmp/prom"
+    env:
+      DATABASE_URL: sqlite3:/tmp/prom/file.sqlite3
+ 
+- name: Add Alertmanager
+  docker:
+    name: alertManager
+    image: prom/alertmanager
+    command: -config.file=/alertmanager.conf
+    state: started
+    ports:
+    - 9093:9093
+    volumes:
+    - "{{ prometheus_config_path }}/alertmanager.conf:/alertmanager.conf"
+
+- name: Add Prometheus
+  docker:
+    name: prometheus
+    image: prom/prometheus 
+    command: -config.file=/prometheus.conf -alertmanager.url=http://localhost:9093
+    state: started
+    ports:
+    - 9090:9090
+    volumes:
+    - "{{ prometheus_config_path }}/prometheus.conf:/prometheus.conf"

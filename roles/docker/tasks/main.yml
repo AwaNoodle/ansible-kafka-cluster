@@ -1,0 +1,13 @@
+---
+- name: Add Packages
+  yum:
+    name: "{{ item }}"
+    update_cache: true
+  with_items:
+  - python-docker-py
+  - docker-engine
+
+- name: Start Docker
+  service:
+    name: docker
+    state: started

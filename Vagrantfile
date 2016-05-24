@@ -35,6 +35,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   accept_oracle_licence = true # set to false if you don't agree (will not install Java8 for you)
 
+  prometheus_ip = "192.168.5.99"
+  prometheus_name = "prometheus"
+
   private_network_begin =  "192.168.5.100" # private ip will start incrementing from this
   zk_vm_memory_mb = 256
   zk_port = 2181
@@ -74,6 +77,19 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       :ka_client_forward_to => kafka_port + idx)]
   }]
 
+  ## ------- Add Prometheus host ---------------->
+
+  config.vm.define "prometheus" do |prometheus|
+    prometheus.vm.network "forwarded_port", guest: 9090, host: 19090 #Prometheus UI
+    prometheus.vm.network "forwarded_port", guest: 3000, host: 13000 #PromDash
+    prometheus.vm.network "forwarded_port", guest: 9093, host: 19093 #AlertManager
+    prometheus.vm.network "forwarded_port", guest: 8080, host: 8080 #AlertManager
+    prometheus.vm.network "private_network", ip: prometheus_ip
+    prometheus.vm.hostname = prometheus_name
+  end
+
+  ## ------- Add Zookeeper and Kafka Machines ---------------->
+
   zk_cluster.each_with_index do |(short_name, info), idx|
 
     config.vm.define short_name do |host|
@@ -91,15 +107,16 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       end
 
       # This allows us to provision everything in one go, in parallel.
-       if idx == (zk_cluster.size - 1)
-         host.vm.provision :ansible do |ansible|
+      if idx == (zk_cluster.size - 1)
+          host.vm.provision :ansible do |ansible|
            ansible.playbook = "site.yml"
            galaxy_role_file = "requirements.yml"
-	   ansible.groups = {
-             "zk" => zk_cluster.keys,
-             "kafka" => zk_cluster.keys,
-             "kafka-manager" => zk_cluster.keys[0]
-           }
+      	   ansible.groups = {
+                   "zk" => zk_cluster.keys,
+                   "kafka" => zk_cluster.keys,
+                   "kafka-manager" => zk_cluster.keys[0],
+                   "prometheus-master" => prometheus_name
+                 }
            ansible.verbose = 'vv'
            ansible.sudo = true
            ansible.limit = 'all' # otherwise, Ansible only runs on the current host...
@@ -110,11 +127,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
              vagrant_zk_cluster_info: zk_cluster_info,
              vagrant_kafka_cluster_info: zk_cluster_info
            }
-         end
-       end
-
+          end
+      end
     end
-
   end
-
 end
